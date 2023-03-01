@@ -84,7 +84,6 @@ class GM
 
   def game_loop
     @board = Board.new(@ki_player.make_sequence)
-    p @board.sequence
     @gamestate = 'playing'
 
     print_start_message
