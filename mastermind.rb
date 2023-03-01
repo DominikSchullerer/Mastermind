@@ -68,11 +68,49 @@ class GM
   end
 end
 
-guess = Guess.new([1, 1, 3, 4])
-sequence = KIPlayer.new.make_sequence
-p guess.guess
-p sequence
+# Board
+class Board
+  attr_reader :guesses
+
+  def initialize
+    @guesses = []
+  end
+
+  def add_guess(guess)
+    @guesses << guess
+  end
+
+  def draw_board
+    @guesses.each_with_index do |guess, index|
+      puts "Guess Nr. #{index + 1}:"
+      puts "Your guess: #{guess.guess}"
+      puts "Your result: #{guess.pegs}"
+      puts ''
+    end
+  end
+end
 
 gm = GM.new
+board = Board.new
+sequence = KIPlayer.new.make_sequence
+p sequence
+
+guess = Guess.new([1, 1, 3, 4])
+p guess.guess
 gm.set_pegs(guess, sequence)
 p guess.pegs
+board.add_guess(guess)
+
+guess = Guess.new([2, 2, 3, 4])
+p guess.guess
+gm.set_pegs(guess, sequence)
+p guess.pegs
+board.add_guess(guess)
+
+guess = Guess.new([3, 1, 3, 4])
+p guess.guess
+gm.set_pegs(guess, sequence)
+p guess.pegs
+board.add_guess(guess)
+
+board.draw_board
