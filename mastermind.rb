@@ -73,16 +73,85 @@ end
 
 # GM
 class GM
+  def initialize
+    @player = Player.new
+    @ki_player = KIPlayer.new
+  end
+
   def set_pegs(guess, sequence)
     guess.set_pegs(Rules.get_pegs(guess, sequence))
+  end
+
+  def game_loop
+    @board = Board.new(@ki_player.make_sequence)
+    p @board.sequence
+    @gamestate = 'playing'
+
+    print_start_message
+
+    guess_loop while @gamestate == 'playing'
+
+    print_end_message
+  end
+
+  def guess_loop
+    guess = @player.get_guess
+    set_pegs(guess, @board.sequence)
+    @board.add_guess(guess)
+    puts ''
+    @board.draw_board
+    @gamestate = 'lost' if @board.guesses.length == 10
+    @gamestate = 'won' if guess.guess == @board.sequence
+  end
+
+  def print_start_message
+    puts 'Can you guess the secret Code in 10 tries?'
+    puts 'You are looking for a sequence of four colors.'
+    puts 'Your feedback is also color coded.'
+    puts 'Black means: There is one correct color at the corect position.'
+    puts 'White means: There is one correct color at a wrong position'
+    puts ''
+  end
+
+  def print_end_message
+    case @gamestate
+    when 'lost'
+      puts "You have lost! The correct sequence is #{@board.sequence}"
+    when 'won'
+      puts "You have won in #{@board.guesses.length} tries!"
+    else
+      puts 'ERROR! This should not be reached.'
+    end
+  end
+
+  def main_loop
+    puts 'MASTERMIND'
+
+    running = true
+    while running
+      puts ''
+      puts 'What do you want do?'
+      puts '(g)uess, (q)uit'
+      input = gets.chomp
+      case input
+      when 'g'
+        puts ''
+        game_loop
+      when 'q'
+        running = false
+      else
+        'ERROR! This should not be reached!'
+      end
+    end
   end
 end
 
 # Board
 class Board
-  attr_reader :guesses
+  attr_reader :guesses, :sequence
 
-  def initialize
+  def initialize(sequence)
+    @sequence = sequence
     @guesses = []
   end
 
@@ -124,6 +193,5 @@ class Player
   end
 end
 
-player = Player.new
-guess = player.get_guess
-p guess
+gm = GM.new
+gm.main_loop
