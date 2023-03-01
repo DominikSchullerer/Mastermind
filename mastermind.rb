@@ -35,6 +35,16 @@ module Rules
     end
     whites - pegs.length
   end
+
+  def self.valid_input?(input)
+    return false unless input.length == 4
+
+    input.each do |entry|
+      return false unless !Integer(self).nil? rescue false
+      return false unless entry.to_i >= 1 && entry.to_i <= COLORS.length
+    end
+    true
+  end
 end
 
 # KIPlayer
@@ -90,27 +100,30 @@ class Board
   end
 end
 
-gm = GM.new
-board = Board.new
-sequence = KIPlayer.new.make_sequence
-p sequence
+# Player
+class Player
+  def get_guess
+    input_is_valid = false
+    until input_is_valid
+      input = prompt_guess.split(' ')
+      input_is_valid = Rules.valid_input?(input)
+    end
+    input = input.map { |entry| entry.to_i - 1 }
+    Guess.new(input)
+  end
 
-guess = Guess.new([1, 1, 3, 4])
-p guess.guess
-gm.set_pegs(guess, sequence)
-p guess.pegs
-board.add_guess(guess)
+  private
 
-guess = Guess.new([2, 2, 3, 4])
-p guess.guess
-gm.set_pegs(guess, sequence)
-p guess.pegs
-board.add_guess(guess)
+  def prompt_guess
+    puts 'The sequence can consist of the colors: '
+    Rules::COLORS.each_with_index do |color, index|
+      puts "#{index + 1}: #{color} "
+    end
+    puts 'Enter your guess (numbers seperated by spaces): '
+    gets
+  end
+end
 
-guess = Guess.new([3, 1, 3, 4])
-p guess.guess
-gm.set_pegs(guess, sequence)
-p guess.pegs
-board.add_guess(guess)
-
-board.draw_board
+player = Player.new
+guess = player.get_guess
+p guess
