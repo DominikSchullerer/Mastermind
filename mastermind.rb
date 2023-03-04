@@ -18,6 +18,9 @@ module Rules
     number_of_white_pegs(guess, sequence, pegs).times do
       pegs << 'White'
     end
+    while pegs.length < 4
+      pegs << 'Empty'
+    end
     pegs
   end
 
@@ -49,6 +52,26 @@ end
 
 # KIPlayer
 class KIPlayer
+  def initialize
+    @set = []
+    (0...Rules::COLORS.length).each do |a|
+      (0...Rules::COLORS.length).each do |b|
+        (0...Rules::COLORS.length).each do |c|
+          (0...Rules::COLORS.length).each do |d|
+            @set << [a, b, c, d]
+          end
+        end
+      end
+    end
+
+    @complete_set = @set
+  end
+
+  def reset
+    @set = @complete_set
+  end
+
+
   def make_sequence
     numbers = []
     4.times do
@@ -56,14 +79,37 @@ class KIPlayer
     end
     Rules.to_colors(numbers)
   end
+
+  def get_guess(guesses)
+    if guesses.empty?
+      Guess.new(@set[rand(@set.length)])
+    else
+      @set = reduce_set(guesses[-1].pegs, guesses[-1].guess_numbers)
+      Guess.new(@set[rand(@set.length)])
+    end
+  end
+
+  def reduce_set(pegs, guess_numbers)
+    @set.reduce([]) do |new_set, entry|
+      test_guess = Guess.new(guess_numbers)
+      sequence = Rules.to_colors(entry)
+      test_pegs = Rules.get_pegs(test_guess, sequence)
+      if pegs == test_pegs
+        new_set << entry
+      else
+        new_set
+      end
+    end
+  end
 end
 
 # Guess
 class Guess
-  attr_reader :guess, :pegs
+  attr_reader :guess, :pegs, :guess_numbers
 
   def initialize(numbers)
     @guess = Rules.to_colors(numbers)
+    @guess_numbers = numbers
   end
 
   def set_pegs(pegs)
@@ -118,12 +164,18 @@ class GM
 
     print_end_message
   end
-  
-    def reverse_game_loop
-      @board = Board.new(@player.get_sequence)
-      p @board.sequence
-    end
-  
+
+  def reverse_game_loop
+    @board = Board.new(@player.get_sequence)
+    puts "Your sequence is: #{@board.sequence}"
+    @ki_player.reset
+    @gamestate = 'reverse_playing'
+
+    reverse_guess_loop while @gamestate == 'reverse_playing'
+
+    print_end_message
+  end
+
   def guess_loop
     guess = @player.get_guess
     set_pegs(guess, @board.sequence)
@@ -134,13 +186,30 @@ class GM
     @gamestate = 'won' if guess.guess == @board.sequence
   end
 
-  def print_start_message
-    puts 'Can you guess the secret Code in 10 tries?'
-    puts 'You are looking for a sequence of four colors.'
-    puts 'Your feedback is also color coded.'
-    puts 'Black means: There is one correct color at the corect position.'
-    puts 'White means: There is one correct color at a wrong position'
+  def reverse_guess_loop
+    guess = @ki_player.get_guess(@board.guesses)
+    set_pegs(guess, @board.sequence)
+    @board.add_guess(guess)
     puts ''
+    @board.draw_board
+    @gamestate = 'reverse_lost' if guess.guess == @board.sequence
+    @gamestate = 'reverse_won' if @board.guesses.length == 10
+  end
+
+  def print_start_message
+    case @gamestate
+    when 'playing'
+      puts 'Can you guess the secret Code in 10 tries?'
+      puts 'You are looking for a sequence of four colors.'
+      puts 'Your feedback is also color coded.'
+      puts 'Black means: There is one correct color at the corect position.'
+      puts 'White means: There is one correct color at a wrong position'
+      puts ''
+    when 'reverse_playing'
+      puts 'Reverse Playing'
+    else
+      puts 'ERROR. This should not be reached'
+    end
   end
 
   def print_end_message
@@ -149,6 +218,11 @@ class GM
       puts "You have lost! The correct sequence is #{@board.sequence}"
     when 'won'
       puts "You have won in #{@board.guesses.length} tries!"
+    when 'reverse_lost'
+      puts 'You have lost!'
+      puts "The computer guessed your sequence in #{@board.guesses.length} tries"
+    when 'reverse_won'
+      puts "You have won! The computer couldn't guess your sequence."
     else
       puts 'ERROR! This should not be reached.'
     end
@@ -171,8 +245,8 @@ class Board
   def draw_board
     @guesses.each_with_index do |guess, index|
       puts "Guess Nr. #{index + 1}:"
-      puts "Your guess: #{guess.guess}"
-      puts "Your result: #{guess.pegs}"
+      puts "Guess: #{guess.guess}"
+      puts "Result: #{guess.pegs}"
       puts ''
     end
   end
@@ -196,7 +270,7 @@ class Player
       input = prompt_sequence.split(' ')
       input_is_valid = Rules.valid_input?(input)
     end
-    input = input.map { |entry| entry.to_i - 1}
+    input = input.map { |entry| entry.to_i - 1 }
     Rules.to_colors(input)
   end
 
