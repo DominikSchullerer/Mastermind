@@ -78,6 +78,32 @@ class GM
     @ki_player = KIPlayer.new
   end
 
+  def main_loop
+    puts 'MASTERMIND'
+
+    running = true
+    while running
+      puts ''
+      puts 'What do you want do?'
+      puts '(g)uess, (q)uit, (s)et a sequence'
+      input = gets.chomp
+      case input
+      when 'g'
+        puts ''
+        game_loop
+      when 'q'
+        running = false
+      when 's'
+        puts ''
+        reverse_game_loop
+      else
+        puts 'Invalid input'
+      end
+    end
+  end
+
+  private
+
   def set_pegs(guess, sequence)
     guess.set_pegs(Rules.get_pegs(guess, sequence))
   end
@@ -92,7 +118,12 @@ class GM
 
     print_end_message
   end
-
+  
+    def reverse_game_loop
+      @board = Board.new(@player.get_sequence)
+      p @board.sequence
+    end
+  
   def guess_loop
     guess = @player.get_guess
     set_pegs(guess, @board.sequence)
@@ -120,27 +151,6 @@ class GM
       puts "You have won in #{@board.guesses.length} tries!"
     else
       puts 'ERROR! This should not be reached.'
-    end
-  end
-
-  def main_loop
-    puts 'MASTERMIND'
-
-    running = true
-    while running
-      puts ''
-      puts 'What do you want do?'
-      puts '(g)uess, (q)uit'
-      input = gets.chomp
-      case input
-      when 'g'
-        puts ''
-        game_loop
-      when 'q'
-        running = false
-      else
-        'ERROR! This should not be reached!'
-      end
     end
   end
 end
@@ -180,6 +190,16 @@ class Player
     Guess.new(input)
   end
 
+  def get_sequence
+    input_is_valid = false
+    until input_is_valid
+      input = prompt_sequence.split(' ')
+      input_is_valid = Rules.valid_input?(input)
+    end
+    input = input.map { |entry| entry.to_i - 1}
+    Rules.to_colors(input)
+  end
+
   private
 
   def prompt_guess
@@ -188,6 +208,16 @@ class Player
       puts "#{index + 1}: #{color} "
     end
     puts 'Enter your guess (numbers seperated by spaces): '
+    gets
+  end
+
+  def prompt_sequence
+    puts 'Choose a sequence for the computer to guess.'
+    puts 'The sequence can consist of the colors: '
+    Rules::COLORS.each_with_index do |color, index|
+      puts "#{index + 1}: #{color} "
+    end
+    puts 'Enter your sequence (numbers seperated by spaces): '
     gets
   end
 end
